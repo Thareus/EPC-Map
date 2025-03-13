@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+    integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+    crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.0/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.0/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.0/dist/leaflet.markercluster.js"></script>
+    <style>
+#map {
+  position: relative;
+  height: 82vh;
+  width: auto;
+  border-radius: 12px;
+}
+
+.module.map > header label {
+    margin: auto;
+    padding: 0px 10px;
+    font-size: 10px;
+}
+.module.map > header label:first-of-type {
+    padding-left: 0px
+}
+.module.map > header select {
+    font-size: 10px;
+    line-height: 16px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding: 5px;
+    width: fit-content;
+}
+
+.module.map div.legend {
+    background-color: #FFFFFF;
+    padding: 5px;
+    border-radius: 6px;
+}
+.module.map div.legend span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin: auto;
+}
+.module.map div.legend p {
+    display: inline-flex;
+    margin: auto;
+    top: -5px;
+    line-height: 24px;
+    position: relative;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="content-container">
+    <h3>EPC Map</h3>
+    <div class="module">
+        <div id="map">Loading...</div>
+    </div>
+</div>
+<script>
+$(document).ready(function() {
+    map = L.map('map').setView([51.5115343, -1.3894649], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    // Load properties onto the map
+    fetchProperties();
+});
+// Function to fetch property data from API
+function fetchProperties() {
+    $.ajax({
+      url: `/api/map/`,
+      type: "GET",
+      async: false,
+      success: function(data){
+        add_to_map(data)
+      },
+    });
+}
+function add_to_map(map_data) {
+    const unique = (value, index, self) => {
+        return self.indexOf(value) === index
+    }
+    function createicon() {
+        return new L.divIcon({
+            className: "",
+            iconSize:[20, 20],
+            iconAnchor: [11, 24],
+            labelAnchor: [-6, 0],
+            popupAnchor: [0, -36],
+            html: '<svg width="24px" height="24px" viewBox="0 0 24 24" <g><path fill="grey" stroke="black" stroke-width="1" d="M11.9,1a8.6,8.6,0,0,0-8.6,8.6c0,4.35,7.2,12.05,8.42,13.33a0.24,0.24,0,0,0,.35,0c1.22-1.27,8.42-9,8.42-13.33A8.6,8.6,0,0,0,11.9,1Zm0,11.67A3.07,3.07,0,1,1,15,9.6,3.07,3.07,0,0,1,11.9,12.67Z"/></g></svg>'
+        });
+    }
+
+    function create_legend(labels) {
+        let set  = new Set(legend_labels.map(JSON.stringify));
+        let unique_labels = Array.from(set).map(JSON.parse);
+
+        legend = L.control({position: 'topright'});
+        legend.onAdd = function (map) {
+            if (unique_labels.length > 0) {
+            var div = L.DomUtil.create('div', 'legend');
+            labels = ['<strong>Categories</strong>'];
+            for (var i = 0; i < unique_labels.length; i++) {
+                    div.innerHTML +=
+                    labels.push(
+                        '<span style="background:' + unique_labels[i][1] + '"></span> ' +
+                        '<p>' + (unique_labels[i][0] ? unique_labels[i][0] : '+')+'</p>');
+                };
+            div.innerHTML = labels.join('<br>');
+            return div;
+            } else {
+                return
+            };
+        };
+        legend.addTo(map);
+    };
+    var markergroup = L.markerClusterGroup();
+    for (let object of map_data) {
+        var marker = L.marker([object.latitude, object.longitude], {icon: createicon()})
+        var popup = marker.bindPopup("Loading...");
+        marker.on('click', (function(currentObject, currentMarker) {
+            return async function() {
+                const details = await fetchPropertyDetails(currentObject.lmk_key);
+                currentMarker.setPopupContent(details);
+            };
+        })(object, marker));
+        markergroup.addLayer(
+          marker
+        )
+    };
+    map.addLayer(markergroup);
+};
+
+// Function to fetch detailed property data
+async function fetchPropertyDetails(lmkKey) {
+    var details;
+    $.ajax({
+      url: `/api/map/${lmkKey}/`,
+      type: "GET",
+      async: false,
+      success: function(property){
+        details = `
+            <b>Address:</b> ${property.address}, ${property.postcode} <br>
+            <b>Building Reference:</b> ${property.uprn} <br>
+            <b>Property Type:</b> ${property.property_type} <br>
+            <b>Built Form:</b> ${property.built_form} <br>
+            <b>Energy Rating:</b> ${property.current_energy_rating} (Potential: ${property.potential_energy_rating}) <br>
+            <b>Energy Efficiency:</b> ${property.current_energy_efficiency} (Potential: ${property.potential_energy_efficiency}) <br>
+            <b>Heating Cost:</b> £${property.heating_cost_current} (Potential: £${property.heating_cost_potential}) <br>
+            <b>Environmental Impact:</b> ${property.environment_impact_current} (Potential: ${property.environmental_impact_potential}) <br>
+        `;
+      },
+      error: function(response){
+        console.error("Error fetching property details", response);
+        return "Error loading property details.";
+      }
+    });
+    return details;
+}
+</script>
+{% endblock body %}
