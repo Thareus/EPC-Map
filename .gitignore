@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-".idea/"
-/.gitignore
+.idea/
+.gitignore
 /data/
 /data/*
 /EPC_MAP/envs/.local
-=======
-".idea/" 
-".idea/vcs.xml" 
->>>>>>> 665e947 (Ignore IDE files)
