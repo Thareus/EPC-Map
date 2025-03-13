@@ -1,6 +1,5 @@
-/.idea
+".idea/"
 /.gitignore
 /data/
 /data/*
 /EPC_MAP/envs/.local
-
