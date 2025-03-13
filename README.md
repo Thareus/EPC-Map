@@ -9,3 +9,5 @@ I used Django to load this data into a Postgresql database and visualised it on 
 The amount of data visible on the map is a fraction of what is available, but it's a good enough stopping place.
 
 I reused quite a lot of elements from previous projects so there are some redundant files in this repo.
+
+![Screenshot 2025-03-13 at 13-08-30 ](https://github.com/user-attachments/assets/714c86da-a0d5-40d1-a346-b922551ae42a)
