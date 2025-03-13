@@ -1,2 +1,5 @@
-".idea/" 
-".idea/vcs.xml" 
+.idea/
+.gitignore
+/data/
+/data/*
+/EPC_MAP/envs/.local
