@@ -7,3 +7,5 @@ This gave each property in the dataset a latitude and longitude.
 
 I used Django to load this data into a Postgresql database and visualised it on a Leaflet map.
 The amount of data visible on the map is a fraction of what is available, but it's a good enough stopping place.
+
+I reused quite a lot of elements from previous projects so there are some redundant files in this repo.
